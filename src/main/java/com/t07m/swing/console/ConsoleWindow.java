@@ -53,6 +53,7 @@ public class ConsoleWindow extends JFrame{
 
 	private static final DateFormat defaultdateFormat = new SimpleDateFormat("[MM-dd-yy HH:mm:ss]");
 	private static final int commandMemoryLimit = 100;
+	private boolean asyncCommands = true;
 	private DateFormat dateFormat = null;
 
 	private JTextField textFieldInput;
@@ -88,7 +89,11 @@ public class ConsoleWindow extends JFrame{
 					longestPrefix = c;
 			}
 			if(longestPrefix != null) {
-				longestPrefix.submit(text, this);
+				if(asyncCommands) {
+					longestPrefix.submitAsync(text, this);
+				}else {
+					longestPrefix.submit(text, this);
+				}
 			}else {
 				if(text.toLowerCase().contains("help") && commands.size() > 0) {
 					log("Available Commands");
@@ -124,6 +129,14 @@ public class ConsoleWindow extends JFrame{
 
 	public DateFormat getDateFormat() {
 		return dateFormat;
+	}
+	
+	public boolean isAsyncCommands() {
+		return asyncCommands;
+	}
+	
+	public void setAsyncCommands(boolean async) {
+		this.asyncCommands = async;
 	}
 
 	public void log(String message) {

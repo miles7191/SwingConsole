@@ -49,6 +49,15 @@ public abstract class Command {
 		return value.toLowerCase().startsWith(prefix);
 	}
 
+	public void submitAsync(String text, ConsoleWindow console) {
+		Thread t = new Thread() {
+			public void run() {
+				submit(text, console);
+			}
+		};
+		t.start();
+	}
+	
 	public void submit(String text, ConsoleWindow console) {
 		try {
 			if(text.length() > prefix.length()) {
