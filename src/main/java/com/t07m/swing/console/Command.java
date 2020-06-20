@@ -72,6 +72,7 @@ public abstract class Command {
 				}
 			}else if(optionParser.recognizedOptions().size() <= 1) {
 				process(null, console);
+				return;
 			}
 		}catch (OptionException e) {
 			console.log(e.getMessage());
