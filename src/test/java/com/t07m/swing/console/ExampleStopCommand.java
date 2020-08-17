@@ -16,12 +16,13 @@
 package com.t07m.swing.console;
 
 import java.util.Arrays;
+import java.util.logging.Logger;
 
 import joptsimple.OptionParser;
 import joptsimple.OptionSet;
 
 public class ExampleStopCommand extends Command{
-
+	
 	public ExampleStopCommand() {
 		super("stop");
 		OptionParser op = new OptionParser();
@@ -45,7 +46,7 @@ public class ExampleStopCommand extends Command{
 			Thread t = new Thread() {
 				public void run() {
 					long delay = Long.parseLong((String) optionSet.valueOf("time"));
-					console.log("Stopping application in " + delay + " seconds.");
+					console.getLogger().info("Stopping application in " + delay + " seconds.");
 					try {
 						Thread.sleep(delay*1000);
 						console.closeRequested();
@@ -56,7 +57,7 @@ public class ExampleStopCommand extends Command{
 			};
 			t.start();
 		}else {
-			console.log("Stopping application.");
+			console.getLogger().info("Stopping application.");
 			console.closeRequested();
 		}		
 	}

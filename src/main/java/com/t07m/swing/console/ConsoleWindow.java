@@ -37,6 +37,11 @@ import java.util.Collections;
 import java.util.Comparator;
 import java.util.Date;
 import java.util.List;
+import java.util.logging.FileHandler;
+import java.util.logging.Formatter;
+import java.util.logging.Handler;
+import java.util.logging.LogRecord;
+import java.util.logging.Logger;
 
 import javax.swing.JFrame;
 import javax.swing.JLabel;
@@ -51,10 +56,13 @@ import javax.swing.border.LineBorder;
 
 public class ConsoleWindow extends JFrame{
 
-	private static final DateFormat defaultdateFormat = new SimpleDateFormat("[MM-dd-yy HH:mm:ss]");
+	private static final DateFormat dateFormat = new SimpleDateFormat("MM-dd-yy HH:mm:ss");
 	private static final int commandMemoryLimit = 100;
 	private boolean asyncCommands = true;
-	private DateFormat dateFormat = null;
+
+	private Logger logger;
+	private String loggerName;
+	private Handler handler;
 
 	private JTextField textFieldInput;
 	private JTextArea textOutput;
@@ -69,12 +77,18 @@ public class ConsoleWindow extends JFrame{
 	private boolean firstLog = true;
 
 	public ConsoleWindow(String title) {
+		this(title, Logger.GLOBAL_LOGGER_NAME);
+	}
+
+	public ConsoleWindow(String title, String loggerName) {
 		setTitle(title);
+		this.loggerName = loggerName;
+		logger = Logger.getLogger(loggerName);										
 	}
 
 	public void processText(String text) {
 		synchronized(commands) {
-			log(text, false);
+			log(text);
 			List<Command> possibles = new ArrayList<Command>();
 			for(Command c : commands) {
 				if(c.shouldProcess(text)) {
@@ -96,20 +110,20 @@ public class ConsoleWindow extends JFrame{
 				}
 			}else {
 				if(text.toLowerCase().contains("help") && commands.size() > 0) {
-					log("Available Commands");
+					logger.info("Available Commands");
 					Collections.sort(commands, new Comparator<Command>() {
 						public int compare(Command o1, Command o2) {
 							return o1.getPrefix().compareTo(o2.getPrefix());
 						}
 					});
 					for(Command c : commands) {
-						log(c.getPrefix());
+						logger.info(c.getPrefix());
 					}
 				}else if(text.toLowerCase().equals("clear") || text.toLowerCase().equals("cls")) {
 					output.clear();
 					firstLog = true;
 				}else {
-					log("Invalid Command");
+					logger.info("Invalid Command");
 				}
 			}
 		}
@@ -123,28 +137,16 @@ public class ConsoleWindow extends JFrame{
 		cleanup();
 	}
 
-	public void setDateFormat(DateFormat df) {
-		dateFormat = df;
-	}
-
-	public DateFormat getDateFormat() {
-		return dateFormat;
-	}
-	
 	public boolean isAsyncCommands() {
 		return asyncCommands;
 	}
-	
+
 	public void setAsyncCommands(boolean async) {
 		this.asyncCommands = async;
 	}
 
-	public void log(String message) {
-		log(message, true);
-	}
-
-	private DateFormat getDateFormatOrDefault() {
-		return dateFormat != null ? dateFormat : defaultdateFormat;
+	public Logger getLogger() {
+		return logger;
 	}
 
 	public Command getCommand(String prefix) {
@@ -172,14 +174,14 @@ public class ConsoleWindow extends JFrame{
 		}
 	}
 
-	public void log(String message, boolean timestamp) {
+	private void log(String message) {
 		try {
-			writer.write((firstLog ? "" : "\n") + (timestamp ? getDateFormatOrDefault().format(new Date())+" " : "") + message);
+			writer.write((firstLog ? "" : "\n") + message);
 			if(firstLog)
 				firstLog = false;
 			writer.flush();
 		} catch (IOException e) {
-			System.out.println((timestamp ? getDateFormatOrDefault().format(new Date()) : "")  + " " + message);
+			System.out.println(message);
 		}
 	}
 
@@ -198,6 +200,40 @@ public class ConsoleWindow extends JFrame{
 		if(commandMemory.size() > commandMemoryLimit) {
 			commandMemory.remove(commandMemory.size()-1);
 		}
+	}
+
+	private void clearLogger() {
+		for(Handler h : logger.getHandlers()) {
+			logger.removeHandler(h);
+		}
+		logger.setUseParentHandlers(false);
+	}
+
+	private Handler getHandler() {
+		if(handler == null) {
+			handler = new Handler() {
+				public void publish(LogRecord record) {
+					log(getFormatter().format(record));
+				}
+				public void flush() {	
+				}
+				public void close() throws SecurityException {	
+				}
+			};
+			handler.setFormatter(new Formatter() {
+				public String format(LogRecord record) {
+					return "[" +dateFormat.format(new Date()) + "] " +
+							"[" + record.getLevel().toString() +"]" + 
+							": " + record.getMessage();
+				}
+
+			});
+		}
+		return handler;
+	}
+
+	public void addFileHandler(FileHandler fileHandler) {
+		logger.addHandler(fileHandler);
 	}
 
 	public void setup() {
@@ -322,5 +358,11 @@ public class ConsoleWindow extends JFrame{
 		});
 		output = new TextAreaOutputStream(textOutput);
 		writer = new OutputStreamWriter(output);
+
+		if(!loggerName.equals(Logger.GLOBAL_LOGGER_NAME)) {
+			this.clearLogger();
+		}
+		logger.addHandler(this.getHandler());
+
 	}
 }

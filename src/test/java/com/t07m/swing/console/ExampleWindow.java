@@ -18,7 +18,7 @@ package com.t07m.swing.console;
 public class ExampleWindow {
 
 	public static void main(String[] args) {
-		ConsoleWindow cw = new ConsoleWindow("Example");
+		ConsoleWindow cw = new ConsoleWindow("Example", "ExampleLogger");
 		cw.registerCommand(new ExampleStopCommand());
 		cw.setup();
 		cw.setLocationRelativeTo(null);

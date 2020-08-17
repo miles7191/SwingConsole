@@ -63,7 +63,7 @@ public class TextAreaOutputStream extends OutputStream {
 
 	public synchronized void write(byte[] ba,int str,int len) {
 		if(appender!=null) {
-			appender.append(bytesToString(ba,str,len)); 
+			appender.append(bytesToString(ba,str,len));
 		}
 	}
 

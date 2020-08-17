@@ -75,7 +75,7 @@ public abstract class Command {
 				return;
 			}
 		}catch (OptionException e) {
-			console.log(e.getMessage());
+			console.getLogger().info(e.getMessage());
 		}
 		try {
 			OptionSet optionSet = optionParser.parse("");
@@ -91,7 +91,7 @@ public abstract class Command {
 		try(StringWriter writer = new StringWriter()){
 			optionParser.printHelpOn(writer);
 			for(String s : writer.toString().split("\n")) {
-				console.log(s);
+				console.getLogger().info(s);
 			}
 		} catch (IOException e) {
 			e.printStackTrace();
