@@ -16,6 +16,7 @@
 package com.t07m.swing.console;
 
 import java.awt.Color;
+import java.awt.Component;
 import java.awt.Dimension;
 import java.awt.Font;
 import java.awt.event.ActionEvent;
@@ -30,17 +31,6 @@ import java.awt.event.WindowFocusListener;
 import java.io.IOException;
 import java.io.OutputStreamWriter;
 import java.io.Writer;
-import java.text.DateFormat;
-import java.text.SimpleDateFormat;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.Comparator;
-import java.util.Date;
-import java.util.List;
-import java.util.logging.FileHandler;
-import java.util.logging.Formatter;
-import java.util.logging.Handler;
-import java.util.logging.LogRecord;
 import java.util.logging.Logger;
 
 import javax.swing.JFrame;
@@ -54,25 +44,17 @@ import javax.swing.UIManager;
 import javax.swing.UnsupportedLookAndFeelException;
 import javax.swing.border.LineBorder;
 
-public class ConsoleWindow extends JFrame{
+import com.t07m.console.AbstractConsole;
 
-	private static final DateFormat dateFormat = new SimpleDateFormat("MM-dd-yy HH:mm:ss");
-	private static final int commandMemoryLimit = 100;
-	private boolean asyncCommands = true;
+public class ConsoleWindow extends AbstractConsole{
 
-	private Logger logger;
-	private String loggerName;
-	private Handler handler;
-
+	private JFrame frame;
+	
 	private JTextField textFieldInput;
 	private JTextArea textOutput;
 	private TextAreaOutputStream output;
 
 	private Writer writer;
-
-	private int commandMemoryIndex = -1;
-	private ArrayList<Command> commands = new ArrayList<Command>();
-	private ArrayList<String> commandMemory = new ArrayList<String>();
 
 	private boolean firstLog = true;
 
@@ -81,100 +63,17 @@ public class ConsoleWindow extends JFrame{
 	}
 
 	public ConsoleWindow(String title, String loggerName) {
-		setTitle(title);
-		this.loggerName = loggerName;
-		logger = Logger.getLogger(loggerName);										
+		super(loggerName);
+		frame = new JFrame();
+		frame.setTitle(title);									
 	}
 
-	public void processText(String text) {
-		synchronized(commands) {
-			log(text);
-			List<Command> possibles = new ArrayList<Command>();
-			for(Command c : commands) {
-				if(c.shouldProcess(text)) {
-					possibles.add(c);
-				}
-			}
-			Command longestPrefix = null;
-			for(Command c : possibles) {
-				if(longestPrefix == null)
-					longestPrefix = c;
-				else if (longestPrefix.getPrefix().length() < c.getPrefix().length())
-					longestPrefix = c;
-			}
-			if(longestPrefix != null) {
-				if(asyncCommands) {
-					longestPrefix.submitAsync(text, this);
-				}else {
-					longestPrefix.submit(text, this);
-				}
-			}else {
-				if(text.toLowerCase().contains("help") && commands.size() > 0) {
-					logger.info("Available Commands");
-					Collections.sort(commands, new Comparator<Command>() {
-						public int compare(Command o1, Command o2) {
-							return o1.getPrefix().compareTo(o2.getPrefix());
-						}
-					});
-					for(Command c : commands) {
-						logger.info(c.getPrefix());
-					}
-				}else if(text.toLowerCase().equals("clear") || text.toLowerCase().equals("cls")) {
-					output.clear();
-					firstLog = true;
-				}else {
-					logger.info("Invalid Command");
-				}
-			}
-		}
-	}
 
 	public void cleanup() {
-		this.dispose();
+		frame.dispose();
 	}
 
-	public void closeRequested() {
-		cleanup();
-	}
-
-	public boolean isAsyncCommands() {
-		return asyncCommands;
-	}
-
-	public void setAsyncCommands(boolean async) {
-		this.asyncCommands = async;
-	}
-
-	public Logger getLogger() {
-		return logger;
-	}
-
-	public Command getCommand(String prefix) {
-		for(Command c : commands) {
-			if(c.getPrefix().equalsIgnoreCase(prefix)) {
-				return c;
-			}
-		}
-		return null;
-	}
-
-	public void registerCommand(Command c) {
-		synchronized(commands) {
-			if(c != null && getCommand(c.getPrefix()) == null) {
-				commands.add(c);
-			}
-		}
-	}
-
-	public void unregisterCommand(Command c) {
-		synchronized(commands) {
-			if(c != null) {
-				commands.remove(c);
-			}
-		}
-	}
-
-	private void log(String message) {
+	public void rawLog(String message) {
 		try {
 			writer.write((firstLog ? "" : "\n") + message);
 			if(firstLog)
@@ -189,51 +88,10 @@ public class ConsoleWindow extends JFrame{
 		if(textFieldInput.getText().length() > 0) {
 			String text = textFieldInput.getText();
 			storeCommand(text);
+			rawLog(text);
 			processText(text);
 			textFieldInput.setText("");
 		}
-	}
-
-	private void storeCommand(String command) {
-		commandMemoryIndex = -1;
-		commandMemory.add(0, command);
-		if(commandMemory.size() > commandMemoryLimit) {
-			commandMemory.remove(commandMemory.size()-1);
-		}
-	}
-
-	private void clearLogger() {
-		for(Handler h : logger.getHandlers()) {
-			logger.removeHandler(h);
-		}
-		logger.setUseParentHandlers(false);
-	}
-
-	private Handler getHandler() {
-		if(handler == null) {
-			handler = new Handler() {
-				public void publish(LogRecord record) {
-					log(getFormatter().format(record));
-				}
-				public void flush() {	
-				}
-				public void close() throws SecurityException {	
-				}
-			};
-			handler.setFormatter(new Formatter() {
-				public String format(LogRecord record) {
-					return "[" +dateFormat.format(new Date()) + "] " +
-							"[" + record.getLevel().toString() +"]" + 
-							": " + record.getMessage();
-				}
-
-			});
-		}
-		return handler;
-	}
-
-	public void addFileHandler(FileHandler fileHandler) {
-		logger.addHandler(fileHandler);
 	}
 
 	public void setup() {
@@ -242,16 +100,16 @@ public class ConsoleWindow extends JFrame{
 					UIManager.getSystemLookAndFeelClassName());
 		} catch (ClassNotFoundException | InstantiationException | IllegalAccessException
 				| UnsupportedLookAndFeelException e1) {}
-		this.addWindowListener(new WindowAdapter() {
+		frame.addWindowListener(new WindowAdapter() {
 			public void windowClosing(WindowEvent windowEvent) {
-				closeRequested();
+				close();
 			}});
-		getContentPane().setBackground(Color.BLACK);
-		setDefaultCloseOperation(JFrame.DO_NOTHING_ON_CLOSE);
-		this.setSize(new Dimension(800, 600));
-		this.setMinimumSize(new Dimension(640, 480));
+		frame.getContentPane().setBackground(Color.BLACK);
+		frame.setDefaultCloseOperation(JFrame.DO_NOTHING_ON_CLOSE);
+		frame.setSize(new Dimension(800, 600));
+		frame.setMinimumSize(new Dimension(640, 480));
 		SpringLayout springLayout = new SpringLayout();
-		getContentPane().setLayout(springLayout);
+		frame.getContentPane().setLayout(springLayout);
 
 		textFieldInput = new JTextField();
 		textFieldInput.setBorder(new LineBorder(new Color(0, 0, 0), 2));
@@ -306,16 +164,16 @@ public class ConsoleWindow extends JFrame{
 			public void focusLost(FocusEvent e) {
 			}
 		});
-		springLayout.putConstraint(SpringLayout.NORTH, labelLineMark, -16, SpringLayout.SOUTH, getContentPane());
-		springLayout.putConstraint(SpringLayout.WEST, labelLineMark, 0, SpringLayout.WEST, getContentPane());
-		springLayout.putConstraint(SpringLayout.SOUTH, labelLineMark, 0, SpringLayout.SOUTH, getContentPane());
-		springLayout.putConstraint(SpringLayout.EAST, labelLineMark, 10, SpringLayout.WEST, getContentPane());
-		getContentPane().add(labelLineMark);
+		springLayout.putConstraint(SpringLayout.NORTH, labelLineMark, -16, SpringLayout.SOUTH, frame.getContentPane());
+		springLayout.putConstraint(SpringLayout.WEST, labelLineMark, 0, SpringLayout.WEST, frame.getContentPane());
+		springLayout.putConstraint(SpringLayout.SOUTH, labelLineMark, 0, SpringLayout.SOUTH, frame.getContentPane());
+		springLayout.putConstraint(SpringLayout.EAST, labelLineMark, 10, SpringLayout.WEST, frame.getContentPane());
+		frame.getContentPane().add(labelLineMark);
 		springLayout.putConstraint(SpringLayout.NORTH, textFieldInput, 0, SpringLayout.NORTH, labelLineMark);
 		springLayout.putConstraint(SpringLayout.WEST, textFieldInput, 0, SpringLayout.EAST, labelLineMark);
-		springLayout.putConstraint(SpringLayout.SOUTH, textFieldInput, 0, SpringLayout.SOUTH, getContentPane());
-		springLayout.putConstraint(SpringLayout.EAST, textFieldInput, 0, SpringLayout.EAST, getContentPane());
-		getContentPane().add(textFieldInput);
+		springLayout.putConstraint(SpringLayout.SOUTH, textFieldInput, 0, SpringLayout.SOUTH, frame.getContentPane());
+		springLayout.putConstraint(SpringLayout.EAST, textFieldInput, 0, SpringLayout.EAST, frame.getContentPane());
+		frame.getContentPane().add(textFieldInput);
 
 		textOutput = new JTextArea();
 		textOutput.addKeyListener(new KeyListener() {
@@ -343,13 +201,13 @@ public class ConsoleWindow extends JFrame{
 				ScrollPaneConstants.HORIZONTAL_SCROLLBAR_NEVER //
 				);
 		sp.setBorder(new LineBorder(new Color(0, 0, 0), 0));
-		springLayout.putConstraint(SpringLayout.NORTH, sp, 0, SpringLayout.NORTH, getContentPane());
-		springLayout.putConstraint(SpringLayout.WEST, sp, 0, SpringLayout.WEST, getContentPane());
-		springLayout.putConstraint(SpringLayout.EAST, sp, 0, SpringLayout.EAST, getContentPane());
+		springLayout.putConstraint(SpringLayout.NORTH, sp, 0, SpringLayout.NORTH, frame.getContentPane());
+		springLayout.putConstraint(SpringLayout.WEST, sp, 0, SpringLayout.WEST, frame.getContentPane());
+		springLayout.putConstraint(SpringLayout.EAST, sp, 0, SpringLayout.EAST, frame.getContentPane());
 		springLayout.putConstraint(SpringLayout.SOUTH, sp, 0, SpringLayout.NORTH, textFieldInput);
-		getContentPane().add(sp);
+		frame.getContentPane().add(sp);
 
-		this.addWindowFocusListener(new WindowFocusListener() {
+		frame.addWindowFocusListener(new WindowFocusListener() {
 			public void windowGainedFocus(WindowEvent e) {
 				textFieldInput.requestFocus();
 			}
@@ -358,11 +216,22 @@ public class ConsoleWindow extends JFrame{
 		});
 		output = new TextAreaOutputStream(textOutput);
 		writer = new OutputStreamWriter(output);
+	}
 
-		if(!loggerName.equals(Logger.GLOBAL_LOGGER_NAME)) {
-			this.clearLogger();
-		}
-		logger.addHandler(this.getHandler());
-
+	public void clear() {
+		output.clear();
+		firstLog = true;
+	}
+	
+	public void setLocationRelativeTo(Component c) {
+		frame.setLocationRelativeTo(c);
+	}
+	
+	public void setVisible(boolean visable) {
+		frame.setVisible(true);
+	}
+	
+	public void setState(int state) {
+		frame.setState(state);
 	}
 }

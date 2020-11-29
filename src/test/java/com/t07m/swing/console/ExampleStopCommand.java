@@ -16,7 +16,9 @@
 package com.t07m.swing.console;
 
 import java.util.Arrays;
-import java.util.logging.Logger;
+
+import com.t07m.console.Command;
+import com.t07m.console.Console;
 
 import joptsimple.OptionParser;
 import joptsimple.OptionSet;
@@ -39,7 +41,7 @@ public class ExampleStopCommand extends Command{
 		this.setOptionParser(op);
 	}
 
-	public void process(OptionSet optionSet, ConsoleWindow console) {
+	public void process(OptionSet optionSet, Console console) {
 		if(optionSet.has("help")) {
 			printHelp(console);
 		}else if(optionSet.has("time")) {
@@ -49,7 +51,7 @@ public class ExampleStopCommand extends Command{
 					console.getLogger().info("Stopping application in " + delay + " seconds.");
 					try {
 						Thread.sleep(delay*1000);
-						console.closeRequested();
+						console.close();
 					} catch (InterruptedException e) {
 						e.printStackTrace();
 					}
@@ -58,7 +60,7 @@ public class ExampleStopCommand extends Command{
 			t.start();
 		}else {
 			console.getLogger().info("Stopping application.");
-			console.closeRequested();
+			console.close();
 		}		
 	}
 
