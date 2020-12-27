@@ -17,6 +17,9 @@ package com.t07m.swing.console;
 
 import java.util.Arrays;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import com.t07m.console.Command;
 import com.t07m.console.Console;
 
@@ -24,6 +27,8 @@ import joptsimple.OptionParser;
 import joptsimple.OptionSet;
 
 public class ExampleStopCommand extends Command{
+	
+	public static Logger logger = LoggerFactory.getLogger(ExampleStopCommand.class);
 	
 	public ExampleStopCommand() {
 		super("stop");
@@ -48,7 +53,7 @@ public class ExampleStopCommand extends Command{
 			Thread t = new Thread() {
 				public void run() {
 					long delay = Long.parseLong((String) optionSet.valueOf("time"));
-					console.getLogger().info("Stopping application in " + delay + " seconds.");
+					logger.info("Stopping application in " + delay + " seconds.");
 					try {
 						Thread.sleep(delay*1000);
 						console.close();
@@ -59,7 +64,7 @@ public class ExampleStopCommand extends Command{
 			};
 			t.start();
 		}else {
-			console.getLogger().info("Stopping application.");
+			logger.info("Stopping application.");
 			console.close();
 		}		
 	}

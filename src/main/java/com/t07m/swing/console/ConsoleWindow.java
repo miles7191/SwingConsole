@@ -30,8 +30,9 @@ import java.awt.event.WindowEvent;
 import java.awt.event.WindowFocusListener;
 import java.io.IOException;
 import java.io.OutputStreamWriter;
+import java.io.PrintStream;
 import java.io.Writer;
-import java.util.logging.Logger;
+import java.util.ArrayList;
 
 import javax.swing.JFrame;
 import javax.swing.JLabel;
@@ -57,13 +58,12 @@ public class ConsoleWindow extends AbstractConsole{
 	private Writer writer;
 
 	private boolean firstLog = true;
+	
+	private int commandMemoryLimit = 100;
+	protected int commandMemoryIndex = -1;
+	protected ArrayList<String> commandMemory = new ArrayList<String>();
 
 	public ConsoleWindow(String title) {
-		this(title, Logger.GLOBAL_LOGGER_NAME);
-	}
-
-	public ConsoleWindow(String title, String loggerName) {
-		super(loggerName);
 		frame = new JFrame();
 		frame.setTitle(title);									
 	}
@@ -88,7 +88,7 @@ public class ConsoleWindow extends AbstractConsole{
 		if(textFieldInput.getText().length() > 0) {
 			String text = textFieldInput.getText();
 			storeCommand(text);
-			rawLog(text);
+			rawLog(text + "\n");
 			processText(text);
 			textFieldInput.setText("");
 		}
@@ -216,6 +216,8 @@ public class ConsoleWindow extends AbstractConsole{
 		});
 		output = new TextAreaOutputStream(textOutput);
 		writer = new OutputStreamWriter(output);
+		System.setOut(new PrintStream(output));
+		System.setErr(new PrintStream(output));
 	}
 
 	public void clear() {
@@ -234,4 +236,13 @@ public class ConsoleWindow extends AbstractConsole{
 	public void setState(int state) {
 		frame.setState(state);
 	}
+	
+	protected void storeCommand(String command) {
+		commandMemoryIndex = -1;
+		commandMemory.add(0, command);
+		if(commandMemory.size() > commandMemoryLimit) {
+			commandMemory.remove(commandMemory.size()-1);
+		}
+	}
+	
 }
