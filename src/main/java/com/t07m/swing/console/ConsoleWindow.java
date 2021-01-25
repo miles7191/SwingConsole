@@ -70,7 +70,10 @@ public class ConsoleWindow extends AbstractConsole{
 
 
 	public void cleanup() {
+		frame.setVisible(false);
 		frame.dispose();
+		commandMemory = null;
+		output.close();
 	}
 
 	public void rawLog(String message) {
