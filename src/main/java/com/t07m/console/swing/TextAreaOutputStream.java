@@ -13,7 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.t07m.swing.console;
+package com.t07m.console.swing;
 
 import java.awt.EventQueue;
 import java.io.OutputStream;

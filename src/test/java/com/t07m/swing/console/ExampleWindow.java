@@ -15,6 +15,8 @@
  */
 package com.t07m.swing.console;
 
+import com.t07m.console.swing.ConsoleWindow;
+
 public class ExampleWindow {
 
 	public static void main(String[] args) {
