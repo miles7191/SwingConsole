@@ -219,8 +219,7 @@ public class ConsoleWindow extends AbstractConsole{
 		});
 		output = new TextAreaOutputStream(textOutput);
 		writer = new OutputStreamWriter(output);
-		System.setOut(new PrintStream(output));
-		System.setErr(new PrintStream(output));
+		this.registerOutputStream(new PrintStream(output));
 	}
 
 	public void clear() {
